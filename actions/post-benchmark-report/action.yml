@@ -40,6 +40,15 @@ inputs:
     description: 'Pull request number (auto-detected from PR events if not set)'
     required: false
     default: ''
+  header_config:
+    description: 'JSON array of header config items, e.g. [{"field":"username","name":"用户名","required":true,"sortable":true,"type":"string"}]'
+    required: true
+  list_code:
+    description: 'List code identifier'
+    required: true
+  list_name:
+    description: 'List display name'
+    required: true
   fail_on_error:
     description: 'Whether to fail the step on upload error'
     required: false
@@ -123,6 +132,11 @@ runs:
 
         # Always add pr_id (required by backend)
         CURL_ARGS+=(-F "pr_id=${{ steps.resolve.outputs.pr_id }}")
+
+        # Add header config
+        CURL_ARGS+=(-F "header_config=${{ inputs.header_config }}")
+        CURL_ARGS+=(-F "list_code=${{ inputs.list_code }}")
+        CURL_ARGS+=(-F "list_name=${{ inputs.list_name }}")
 
         # Add the file
         CURL_ARGS+=(-F "file=@${{ inputs.report_path }}")
