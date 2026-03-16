@@ -1,0 +1,87 @@
+name: Test post-benchmark-report action
+
+on:
+  push:
+    paths: ['actions/post-benchmark-report/**']
+  pull_request:
+    paths: ['actions/post-benchmark-report/**']
+  workflow_dispatch:
+
+jobs:
+  test-upload-success:
+    name: Upload succeeds with valid report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create dummy benchmark report
+        run: echo '{"benchmarks":[]}' > report.json
+
+      - name: Run post-benchmark-report
+        id: upload
+        uses: ./actions/post-benchmark-report
+        with:
+          backend_url: https://httpbin.org/post
+          report_path: benchmark_metrics.json
+
+      - name: Assert HTTP 200
+        run: |
+          if [ "${{ steps.upload.outputs.status }}" != "200" ]; then
+            echo "::error::Expected HTTP 200, got ${{ steps.upload.outputs.status }}"
+            exit 1
+          fi
+          echo "Upload returned HTTP 200"
+
+  test-fail-on-missing-file:
+    name: Fails when report file is missing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run post-benchmark-report with missing file
+        id: upload
+        continue-on-error: true
+        uses: ./actions/post-benchmark-report
+        with:
+          backend_url: https://httpbin.org/post
+          report_path: non_existent_report.json
+          fail_on_error: 'true'
+
+      - name: Assert step failed
+        run: |
+          if [ "${{ steps.upload.outcome }}" != "failure" ]; then
+            echo "::error::Expected failure but got ${{ steps.upload.outcome }}"
+            exit 1
+          fi
+          echo "Action correctly failed on missing file"
+
+  test-default-input-resolution:
+    name: Default inputs are resolved from github context
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create dummy benchmark report
+        run: echo '{"benchmarks":[]}' > report.json
+
+      - name: Run post-benchmark-report (defaults only)
+        id: upload
+        uses: ./actions/post-benchmark-report
+        with:
+          backend_url: https://httpbin.org/post
+          report_path: benchmark_metrics.json
+
+      - name: Verify resolved defaults via httpbin response
+        run: |
+          RESPONSE=$(cat /tmp/upload_response.txt)
+          echo "Response: $RESPONSE"
+
+          # httpbin echoes form fields back under "form" key
+          for field in git_project_name workflow_name job_name; do
+            VALUE=$(echo "$RESPONSE" | jq -r ".form.${field} // empty")
+            if [ -z "$VALUE" ]; then
+              echo "::error::Field '$field' was empty or missing in upload"
+              exit 1
+            fi
+            echo "$field = $VALUE"
+          done

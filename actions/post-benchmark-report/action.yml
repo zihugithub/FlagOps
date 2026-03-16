@@ -1,12 +1,12 @@
-name: 'Post Pytest Report'
-description: 'Upload a pytest JSON report to a backend HTTP service'
+name: 'Post benchmark Report'
+description: 'Upload a benchmark JSON report to a backend HTTP service'
 
 inputs:
   backend_url:
     description: 'Full URL of the backend metrics endpoint'
     required: true
   report_path:
-    description: 'Path to the pytest JSON report file'
+    description: 'Path to the benchmark JSON report file'
     required: true
   api_token:
     description: 'Bearer token for authentication (optional)'
@@ -19,7 +19,7 @@ inputs:
   file_type:
     description: 'File type identifier'
     required: false
-    default: 'pytest'
+    default: 'benchmark'
   is_zipped:
     description: 'Whether the file is zipped'
     required: false

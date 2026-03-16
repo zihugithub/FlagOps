@@ -1,16 +1,16 @@
-# Post Pytest Report Action
+# Post Benchmark Report Action
 
-A reusable GitHub Action that uploads a pytest JSON report to a backend HTTP service via multipart form POST.
+A reusable GitHub Action that uploads a benchmark JSON report to a backend HTTP service via multipart form POST.
 
 ## Inputs
 
 | Input | Required | Default | Description |
 |---|---|---|---|
 | `backend_url` | **yes** | — | Full URL of the backend metrics endpoint |
-| `report_path` | **yes** | — | Path to the pytest JSON report file |
+| `report_path` | **yes** | — | Path to the benchmark JSON report file |
 | `api_token` | no | `""` | Bearer token for authentication |
 | `file_format` | no | `json` | File format identifier |
-| `file_type` | no | `pytest` | File type identifier |
+| `file_type` | no | `benchmark` | File type identifier |
 | `is_zipped` | no | `false` | Whether the file is zipped |
 | `git_project_name` | no | `${{ github.repository }}` | Project name |
 | `workflow_name` | no | `${{ github.workflow }}` | Workflow name |
@@ -26,17 +26,17 @@ A reusable GitHub Action that uploads a pytest JSON report to a backend HTTP ser
 
 ## Usage
 
-### Basic (in a pytest workflow)
+### Basic (in a benchmark workflow)
 
 ```yaml
 steps:
-  - name: Run pytest
-    id: pytest
+  - name: Run benchmark
+    id: benchmark
     run: |
-      pytest --json-report --json-report-file=benchmark_metrics.json
+      python run_benchmark.py --output benchmark_metrics.json
 
-  - name: Upload pytest report
-    if: steps.pytest.outcome == 'success'
+  - name: Upload benchmark report
+    if: steps.benchmark.outcome == 'success'
     uses: flagos-ai/FlagOps/actions/post-benchmark-report@main
     with:
       backend_url: 'http://10.1.4.167:30180/flagcicd-backend/metrics/'
@@ -54,7 +54,7 @@ steps:
       report_path: 'benchmark_metrics.json'
       is_zipped: 'true'
       api_token: ${{ secrets.BACKEND_TOKEN }}
-      job_name: 'pytest_unit_tests'
+      job_name: 'benchmark_tests'
       fail_on_error: 'false'
 ```
 
