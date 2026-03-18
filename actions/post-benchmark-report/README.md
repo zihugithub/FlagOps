@@ -75,20 +75,39 @@ steps:
 
 ## Report File Format
 
-The benchmark JSON report file should have the following structure:
+The benchmark JSON report file should be a key-value object where each key is a metric name and the value is an array of data points:
 
 ```json
 {
-  "metric_name": {
-    "values": [1.23, 4.56, 7.89]
-  },
-  "another_metric": {
-    "values": [10, 20, 30]
-  }
+  "elapsed time per iteration (ms):": [8572.3, 766.4, 308.1, 306.5, 306.5],
+  "throughput per GPU (TFLOP/s/GPU):": [1.4, 16.2, 39.9, 39.5, 40.4]
 }
 ```
 
-Each key is a metric name, and its `values` array contains the data points. The action transforms this into the upload payload automatically.
+The action uses `header_config` to dynamically determine field names in the upload payload:
+
+- `header_config[0].field` → mapped to each entry's **key** (metric name)
+- `header_config[1].field` → mapped to each entry's **value** (data array)
+
+For example, with `header_config`:
+
+```json
+[
+  {"field": "metric", "name": "Metric", "required": true, "sortable": true, "type": "string"},
+  {"field": "values", "name": "Values", "required": true, "sortable": true, "type": "number"}
+]
+```
+
+The above report is transformed into:
+
+```json
+{
+  "items": [
+    {"metric": "elapsed time per iteration (ms):", "values": [8572.3, 766.4, 308.1, 306.5, 306.5], "commit_id": "...", "repository_name": "...", "workflow_id": "...", "run_id": "..."},
+    {"metric": "throughput per GPU (TFLOP/s/GPU):", "values": [1.4, 16.2, 39.9, 39.5, 40.4], "commit_id": "...", "repository_name": "...", "workflow_id": "...", "run_id": "..."}
+  ]
+}
+```
 
 ## `header_config` Format
 
@@ -120,6 +139,6 @@ Example:
 
 1. **Resolve inputs**: Defaults are populated from GitHub context (`github.repository`, `github.run_id`, `github.sha`). `run_id` also defaults to `github.run_id`. If `list_name` is empty, it defaults to `list_code`.
 2. **Post header config**: Sends the header configuration to `{backend_url}/flagcicd-backend/list/header`. If the list code already exists, the step is treated as a no-op.
-3. **Upload data**: Reads the report file, transforms it into items, and POSTs to `{backend_url}/flagcicd-backend/list/data/{list_code}`.
+3. **Upload data**: Reads the report file, uses `header_config` to dynamically map field names, and POSTs to `{backend_url}/flagcicd-backend/list/data/{list_code}`. Each item includes `commit_id`, `repository_name`, `workflow_id`, and `run_id`.
 4. **Query data**: After a successful upload, queries the list data with pagination and sorting from `{backend_url}/flagcicd-backend/list/data/{list_code}`.
 5. **Error handling**: Controlled by `fail_on_error`. When `true` (default), a failed request or missing report file fails the workflow step. When `false`, a warning is logged and the step succeeds.
